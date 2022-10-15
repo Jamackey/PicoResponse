@@ -1,4 +1,3 @@
-import time
 import pypico
 import numpy as np
 import matplotlib.pyplot as plt

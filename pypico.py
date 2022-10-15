@@ -29,8 +29,9 @@ volt_range_list = {
 class PicoScope:
     def __init__(self):
         with find_unit() as device:
-            series = device.info.variant.decode()[0]
-        print(f'PicoScope {series}000')
+            name = device.info.variant.decode()
+            series = name[0]
+        print(f'PicoScope {name}')
         if series == '2':
             self.ps = PicoScope2000a()
         elif series == '3':
