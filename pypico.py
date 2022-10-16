@@ -26,16 +26,17 @@ volt_range_list = {
 }
 
 
-class PicoScope:
-    def __init__(self):
-        with find_unit() as device:
-            name = device.info.variant.decode()
-            series = name[0]
-        print(f'PicoScope {name}')
-        if series == '2':
-            self.ps = PicoScope2000a()
-        elif series == '3':
-            self.ps = PicoScope3000a()
+def get_picoscope():
+    with find_unit() as device:
+        name = device.info.variant.decode()
+        series = name[0]
+    print(f'PicoScope {name}')
+    if series == '2':
+        selected_picoscope = PicoScope2000a()
+        return selected_picoscope
+    elif series == '3':
+        selected_picoscope = PicoScope3000a()
+        return selected_picoscope
 
 
 class PicoScope2000a:
@@ -79,7 +80,7 @@ class PicoScope2000a:
                                                                           self.triggerSource, 1)
         return assert_pico_ok(self.status["SetSigGenBuiltIn"])
 
-    def block_capture(self, channel, voltage_range, duration_ms, threshold=0, pre_trigger=0):
+    def block_capture(self, channel, voltage_range, duration_ms, threshold=0, pre_trigger=0, return_timebase=False):
 
         # Convert voltage & threshold values
         adc_bits = 65535
@@ -111,12 +112,10 @@ class PicoScope2000a:
         assert_pico_ok(self.status["getTimebase2"])
 
         # calculate amount of samples to cover duration & add pre trigger (if any)
-        print(f'Time Interval: {timeIntervalns.value}')
         samples = round((duration_ms * 1000000) / timeIntervalns.value)
         totalSamples = samples
         preTriggerSamples = samples * pre_trigger
         postTriggerSamples = samples * (100 - pre_trigger)
-        print(f'Samples: {samples}')
 
         # Run block capture
         self.status["runBlock"] = ps2000a.ps2000aRunBlock(self.chandle,
@@ -173,7 +172,10 @@ class PicoScope2000a:
         self.status["stop"] = ps2000a.ps2000aStop(self.chandle)
         assert_pico_ok(self.status["stop"])
 
-        return time_values, voltage_values
+        if return_timebase:
+            return time_values, voltage_values, samples, timeIntervalns.value
+        else:
+            return time_values, voltage_values
 
     def ready(self):
         ready = ctypes.c_int16(0)
